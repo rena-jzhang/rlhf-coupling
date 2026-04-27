@@ -25,7 +25,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import DPOConfig, DPOTrainer
 import torch
 
-MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct"
+MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"  # non-gated; swap to Llama-3-8B once HF approval lands
 DATASET_ID = "HuggingFaceH4/ultrafeedback_binarized"
 
 # Sycophantic-agreement heuristic: chosen response leads with affirmation phrasing

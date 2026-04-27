@@ -2,7 +2,7 @@
 
 **Question:** When you decouple one bias in an RLHF reward model (length), does another bias (sycophancy) get worse in the trained policy?
 
-**Plan:** Llama-3-8B + LoRA + DPO on UltraFeedback. 4 variants × 3 metrics. ~$75 on RunPod spot, ~25-35 GPU-hrs.
+**Plan:** Qwen2.5-7B-Instruct (non-gated) + LoRA + DPO on UltraFeedback. 4 variants × 3 metrics. ~$75 on RunPod spot, ~25-35 GPU-hrs.
 
 Full proposal: [`re-exploration/research/evals/b-llm-judge-bias/proposal-v3-cross-bias.md`](../re-exploration/research/evals/b-llm-judge-bias/proposal-v3-cross-bias.md)
 
@@ -29,7 +29,7 @@ Sycophancy filter is heuristic (regex on chosen response after detecting opinion
 git clone <this-repo>
 cd rlhf-coupling
 pip install -r requirements.txt
-huggingface-cli login   # need Llama-3-8B-Instruct access on HF
+huggingface-cli login   # only needed for private datasets; Qwen is open
 bash run_all.sh
 ```
 

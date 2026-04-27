@@ -21,7 +21,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 from tqdm import tqdm
 
-MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct"
+MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"  # match train_dpo.py
 ALPACA_URL = "https://huggingface.co/datasets/tatsu-lab/alpaca_eval/resolve/main/alpaca_eval.json"
 
 
