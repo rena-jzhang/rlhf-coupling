@@ -104,7 +104,7 @@ def main(variant: str, out_dir: Path, max_steps: int) -> None:
         model=model,
         args=cfg,
         train_dataset=ds,
-        processing_class=tok,
+        tokenizer=tok,
         peft_config=lora,
     )
     trainer.train()
