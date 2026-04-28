@@ -76,6 +76,15 @@ def main(variant: str, out_dir: Path, max_steps: int) -> None:
     ds = filter_dataset(ds_full, variant)
     print(f"Dataset: {len(ds_full)} → {len(ds)} after filtering")
 
+    # Flatten chat-format → strings for TRL 0.11 DPOTrainer
+    def to_strings(ex):
+        return {
+            "prompt": ex["prompt"],
+            "chosen": ex["chosen"][-1]["content"],
+            "rejected": ex["rejected"][-1]["content"],
+        }
+    ds = ds.map(to_strings, remove_columns=ds.column_names)
+
     model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype=torch.bfloat16)
 
     lora = LoraConfig(
