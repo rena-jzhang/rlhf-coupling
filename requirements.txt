@@ -5,6 +5,5 @@ datasets>=2.19
 peft>=0.11
 trl>=0.9
 bitsandbytes>=0.43
-flash-attn>=2.5
 numpy
 tqdm

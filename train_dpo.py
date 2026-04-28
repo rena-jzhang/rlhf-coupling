@@ -76,9 +76,7 @@ def main(variant: str, out_dir: Path, max_steps: int) -> None:
     ds = filter_dataset(ds_full, variant)
     print(f"Dataset: {len(ds_full)} → {len(ds)} after filtering")
 
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2"
-    )
+    model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype=torch.bfloat16)
 
     lora = LoraConfig(
         r=16, lora_alpha=32, lora_dropout=0.05, bias="none", task_type="CAUSAL_LM",
