@@ -100,7 +100,13 @@ def write_heatmap(rows: list[dict], deltas: dict) -> bool:
     text = (alt.Chart(df).mark_text(color="black")
             .encode(x="intervention:N", y="metric:N",
                     text=alt.Text("value:Q", format=".2f")))
-    (chart + text).save(str(RES / "coupling_heatmap.png"), ppi=120)
+    combined = chart + text
+    # Try PNG (requires vl-convert-python); fall back to HTML which works with altair alone.
+    try:
+        combined.save(str(RES / "coupling_heatmap.png"), ppi=120)
+    except Exception as e:
+        print(f"  PNG export failed ({type(e).__name__}); writing HTML instead")
+        combined.save(str(RES / "coupling_heatmap.html"))
     return True
 
 

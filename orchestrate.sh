@@ -151,7 +151,7 @@ heartbeat "ORCH" "all done"
 
 # Auto-analysis
 echo "=== running analyze.py ==="
-pip install -q altair pandas 2>&1 | tail -1
+pip install -q altair pandas vl-convert-python 2>&1 | tail -1
 python analyze.py 2>&1 | tee logs/analyze.log
 
 push_results "[ORCH] all variants complete; SUMMARY.json + REPORT.md written"
