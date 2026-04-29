@@ -19,11 +19,39 @@ set -uo pipefail
 
 VARIANTS=${VARIANTS:-"A B C D"}
 AUTO_SHUTDOWN=${AUTO_SHUTDOWN:-0}
+MODE=${1:-run}   # "check" = print env diagnostics and exit, "run" = full pipeline
 
 ROOT=$(cd "$(dirname "$0")" && pwd)
 cd "$ROOT"
 
 mkdir -p results checkpoints logs
+
+if [ "$MODE" = "check" ]; then
+    echo "=== orchestrate.sh self-check ==="
+    echo "ROOT: $ROOT"
+    echo "VARIANTS: $VARIANTS"
+    echo "AUTO_SHUTDOWN: $AUTO_SHUTDOWN"
+    echo "GH_PAT set: $([ -n "${GH_PAT:-}" ] && echo yes || echo no)"
+    echo "RUNPOD_POD_ID: ${RUNPOD_POD_ID:-(unset)}"
+    echo "runpodctl: $(command -v runpodctl 2>/dev/null || echo MISSING)"
+    echo "python: $(python --version 2>&1)"
+    echo "torch + cuda:"
+    python -c "import torch; print(f'  torch={torch.__version__} cuda={torch.cuda.is_available()} gpu={torch.cuda.get_device_name(0) if torch.cuda.is_available() else None}')" 2>&1
+    echo "git remote:"
+    git remote -v 2>&1 | head -2
+    echo "pre-existing results:"
+    ls results/ 2>/dev/null || echo "  (none)"
+    echo "pre-existing checkpoints:"
+    ls checkpoints/ 2>/dev/null || echo "  (none)"
+    if [ "$AUTO_SHUTDOWN" = "1" ] && ! command -v runpodctl >/dev/null; then
+        echo ""
+        echo "⚠️  AUTO_SHUTDOWN=1 but runpodctl not found. Pod won't auto-stop."
+        echo "    Install with: pip install runpod && which runpodctl"
+    fi
+    echo ""
+    echo "=== end self-check ==="
+    exit 0
+fi
 
 # Git auth via PAT
 if [ -n "${GH_PAT:-}" ]; then
