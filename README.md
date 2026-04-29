@@ -4,6 +4,27 @@
 
 **Plan:** Qwen2.5-7B-Instruct (non-gated) + LoRA + DPO on UltraFeedback. 4 variants × 3 metrics. ~$75 on RunPod spot, ~25-35 GPU-hrs.
 
+## Hands-off workflow
+
+The repo runs end-to-end with one command. The pod auto-commits results + status to GitHub after each phase, so you monitor from your laptop.
+
+**On the pod (one paste in web terminal):**
+```bash
+cd /workspace/rlhf-coupling && git pull && \
+  GH_PAT=<your-pat> AUTO_SHUTDOWN=1 \
+  nohup bash orchestrate.sh > logs/orchestrate.log 2>&1 &
+```
+
+**On your laptop:**
+```bash
+python monitor.py --watch
+```
+Every 60s pulls latest, prints which variants are done, plus the last 5 status events.
+
+If the pod crashes or you re-deploy, just paste the same orchestrate command on the new pod — it skips finished variants and resumes any partial training from the latest checkpoint.
+
+When the orchestrator finishes, it writes `results/SUMMARY.json` and (if `AUTO_SHUTDOWN=1`) shuts down the pod 60s later so you don't burn idle $/hr.
+
 Full proposal: [`re-exploration/research/evals/b-llm-judge-bias/proposal-v3-cross-bias.md`](../re-exploration/research/evals/b-llm-judge-bias/proposal-v3-cross-bias.md)
 
 ## Variants

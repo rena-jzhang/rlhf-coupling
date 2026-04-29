@@ -116,7 +116,13 @@ def main(variant: str, out_dir: Path, max_steps: int) -> None:
         tokenizer=tok,
         peft_config=lora,
     )
-    trainer.train()
+
+    # Resume from latest checkpoint if any exist in out_dir
+    resume = False
+    if out_dir.exists() and any(p.name.startswith("checkpoint-") for p in out_dir.iterdir()):
+        resume = True
+        print(f"Resuming from latest checkpoint in {out_dir}")
+    trainer.train(resume_from_checkpoint=resume)
     trainer.save_model(str(out_dir))
     print(f"Saved adapter to {out_dir}")
 
