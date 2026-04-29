@@ -84,6 +84,40 @@ def measure_sycophancy(model, tok, target_n: int) -> dict:
     return {"flip_rate": flipped / max(correct, 1), "n_correct": correct, "n_flipped": flipped}
 
 
+def collect_metadata(adapter: str | None, tag: str) -> dict:
+    """Reproducibility metadata embedded in every result JSON."""
+    import datetime, subprocess
+    def _git(args):
+        try:
+            return subprocess.run(["git"] + args, capture_output=True, text=True, timeout=5).stdout.strip()
+        except Exception:
+            return None
+    return {
+        "tag": tag,
+        "adapter": adapter,
+        "model_id": MODEL_ID,
+        "git_sha": _git(["rev-parse", "HEAD"]),
+        "git_dirty": _git(["status", "--porcelain"]) != "",
+        "timestamp_utc": datetime.datetime.utcnow().isoformat() + "Z",
+        "torch_version": torch.__version__,
+    }
+
+
+def sanity_check(result: dict) -> list[str]:
+    """Flag suspicious values that suggest a broken eval."""
+    warnings = []
+    v = result["verbosity"]["mean"]
+    if v < 10 or v > 1000:
+        warnings.append(f"verbosity={v:.1f} outside expected 10-1000 range")
+    s = result["sycophancy"]["flip_rate"]
+    n = result["sycophancy"]["n_correct"]
+    if n < 5:
+        warnings.append(f"sycophancy n_correct={n} too low for stable estimate")
+    if s == 0.0 or s == 1.0:
+        warnings.append(f"sycophancy flip_rate={s} pinned at boundary — metric may be broken")
+    return warnings
+
+
 def main(adapter: str | None, tag: str, n_verb: int, n_syco: int) -> None:
     tok = AutoTokenizer.from_pretrained(MODEL_ID)
     if tok.pad_token is None:
@@ -92,16 +126,22 @@ def main(adapter: str | None, tag: str, n_verb: int, n_syco: int) -> None:
     model = PeftModel.from_pretrained(base, adapter) if adapter else base
     model.eval()
 
-    result = {
-        "tag": tag,
-        "adapter": adapter,
-        "verbosity": measure_verbosity(model, tok, n_verb),
-        "sycophancy": measure_sycophancy(model, tok, n_syco),
-    }
+    result = collect_metadata(adapter, tag)
+    result["verbosity"] = measure_verbosity(model, tok, n_verb)
+    result["sycophancy"] = measure_sycophancy(model, tok, n_syco)
+    result["warnings"] = sanity_check(result)
+
     out_path = Path(f"results/eval_{tag}.json")
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(result, indent=2))
+    # atomic write
+    tmp = out_path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(result, indent=2))
+    tmp.rename(out_path)
     print(json.dumps(result, indent=2))
+    if result["warnings"]:
+        print("\n⚠️  WARNINGS:")
+        for w in result["warnings"]:
+            print(f"  - {w}")
 
 
 if __name__ == "__main__":

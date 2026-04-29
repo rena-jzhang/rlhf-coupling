@@ -148,7 +148,13 @@ for v, r in results.items():
 PY
 
 heartbeat "ORCH" "all done"
-push_results "[ORCH] all variants complete; SUMMARY.json written"
+
+# Auto-analysis
+echo "=== running analyze.py ==="
+pip install -q altair pandas 2>&1 | tail -1
+python analyze.py 2>&1 | tee logs/analyze.log
+
+push_results "[ORCH] all variants complete; SUMMARY.json + REPORT.md written"
 
 if [ "$AUTO_SHUTDOWN" = "1" ] && command -v runpodctl >/dev/null && [ -n "${RUNPOD_POD_ID:-}" ]; then
     echo "=== shutting down pod $RUNPOD_POD_ID in 60s ==="

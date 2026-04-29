@@ -49,9 +49,27 @@ def status() -> str:
             lines.append(f"  {v:5s} —  pending")
 
     summary = ROOT / "results" / "SUMMARY.json"
+    report = ROOT / "results" / "REPORT.md"
     if summary.exists():
         lines.append("")
         lines.append(f"✅ SUMMARY.json present — orchestrator finished")
+    if report.exists():
+        lines.append(f"✅ REPORT.md present — view with: cat results/REPORT.md")
+    # Surface any sanity warnings from the eval JSONs
+    warns = []
+    for v in ["A", "B", "C", "D", "base"]:
+        p = ROOT / "results" / f"eval_{v}.json"
+        if p.exists():
+            try:
+                r = json.loads(p.read_text())
+                for w in r.get("warnings", []):
+                    warns.append(f"  {v}: {w}")
+            except Exception:
+                pass
+    if warns:
+        lines.append("")
+        lines.append("⚠️  Sanity warnings:")
+        lines.extend(warns)
 
     return "\n".join(lines)
 
