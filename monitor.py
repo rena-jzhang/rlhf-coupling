@@ -21,14 +21,28 @@ STATE_FILE = ROOT / ".monitor_state.json"  # local cache, gitignored
 
 
 def notify(title: str, body: str, sound: str = "Glass") -> None:
-    """macOS native notification via osascript. No-op on non-Mac."""
-    if platform.system() != "Darwin":
-        return
-    try:
-        msg = f'display notification "{body}" with title "{title}" sound name "{sound}"'
-        subprocess.run(["osascript", "-e", msg], check=False, timeout=5)
-    except Exception:
-        pass
+    """macOS native notification + optional ntfy.sh push to phone."""
+    # macOS native
+    if platform.system() == "Darwin":
+        try:
+            msg = f'display notification "{body}" with title "{title}" sound name "{sound}"'
+            subprocess.run(["osascript", "-e", msg], check=False, timeout=5)
+        except Exception:
+            pass
+    # Phone via ntfy.sh — set NTFY_TOPIC env var to enable
+    import os, urllib.request
+    topic = os.environ.get("NTFY_TOPIC")
+    if topic:
+        try:
+            req = urllib.request.Request(
+                f"https://ntfy.sh/{topic}",
+                data=body.encode("utf-8"),
+                headers={"Title": title, "Priority": "default", "Tags": "robot"},
+                method="POST",
+            )
+            urllib.request.urlopen(req, timeout=5).read()
+        except Exception:
+            pass
 
 
 def load_state() -> dict:
