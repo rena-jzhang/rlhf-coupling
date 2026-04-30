@@ -1,3 +1,16 @@
 Detected 4 GPUs
 === queued train: A B C D on 4 GPUs ===
 Already up to date.
+ delete mode 100644 logs/train_C.log
+ delete mode 100644 logs/train_D.log
+To https://github.com/rena-jzhang/rlhf-coupling.git
+   fc2f002..ed70d26  main -> main
+[A] launching on GPU 0
+[B] launching on GPU 1
+[C] launching on GPU 2
+[D] launching on GPU 3
+[D] finished rc=0 ckpt=yes (gpu=3 freed)
+[B] finished rc=0 ckpt=yes (gpu=1 freed)
+[A] finished rc=0 ckpt=yes (gpu=0 freed)
+[C] finished rc=0 ckpt=yes (gpu=2 freed)
+Already up to date.
