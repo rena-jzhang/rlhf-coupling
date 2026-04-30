@@ -15,6 +15,12 @@ ROOT=$(cd "$(dirname "$0")" && pwd)
 cd "$ROOT"
 mkdir -p results checkpoints logs
 
+# Container disk is 20 GB; workspace volume is 80 GB. Force all HF caches to /workspace.
+export HF_HOME="/workspace/hf_cache"
+export TRANSFORMERS_CACHE="/workspace/hf_cache/transformers"
+export HF_DATASETS_CACHE="/workspace/hf_cache/datasets"
+mkdir -p "$HF_HOME" "$TRANSFORMERS_CACHE" "$HF_DATASETS_CACHE"
+
 # Pull RUNPOD_* env from PID 1 (sshd login shells drop them)
 if [ -z "${RUNPOD_POD_ID:-}" ] && [ -r /proc/1/environ ]; then
     while IFS= read -r -d '' kv; do

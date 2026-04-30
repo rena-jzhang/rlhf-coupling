@@ -26,6 +26,12 @@ cd "$ROOT"
 
 mkdir -p results checkpoints logs
 
+# Force HF caches to /workspace volume (80GB) instead of container disk (20GB).
+export HF_HOME="/workspace/hf_cache"
+export TRANSFORMERS_CACHE="/workspace/hf_cache/transformers"
+export HF_DATASETS_CACHE="/workspace/hf_cache/datasets"
+mkdir -p "$HF_HOME" "$TRANSFORMERS_CACHE" "$HF_DATASETS_CACHE"
+
 # RunPod injects pod env on PID 1 but ssh login shells drop them. Pull them in.
 if [ -z "${RUNPOD_POD_ID:-}" ] && [ -r /proc/1/environ ]; then
     while IFS= read -r -d '' kv; do
