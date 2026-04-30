@@ -54,50 +54,83 @@ heartbeat() {
 # Verify GPU count
 NGPU=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 echo "Detected $NGPU GPUs"
-if [ "$NGPU" -lt 4 ]; then
-    echo "⚠️  This script expects ≥4 GPUs. Found $NGPU. Falling back to serial orchestrate.sh recommended."
+if [ "$NGPU" -lt 1 ]; then
+    echo "⚠️  No GPUs found."
     exit 1
 fi
 
 # ────────────────────────────────────────────────────────────────────
-# PHASE 1 — train all variants in parallel, one per GPU
+# PHASE 1 — queue variants across NGPU GPUs (more variants than GPUs is fine)
 # ────────────────────────────────────────────────────────────────────
-echo "=== parallel train: $VARIANTS ==="
-heartbeat "ORCH" "parallel-train start"
-push_results "[ORCH] parallel-train start ($NGPU GPUs)"
+echo "=== queued train: $VARIANTS on $NGPU GPUs ==="
+heartbeat "ORCH" "queued-train start"
+push_results "[ORCH] queued-train start ($NGPU GPUs)"
 
-declare -a PIDS
-GPU_IDX=0
+# Filter pending variants
+PENDING=()
 for v in $VARIANTS; do
     if [ -f "results/eval_${v}.json" ]; then
         echo "[$v] already done — skipping"
-        continue
+    else
+        PENDING+=("$v")
     fi
-    echo "[$v] launching on GPU $GPU_IDX"
-    heartbeat "$v" "train start (gpu=$GPU_IDX)"
-    setsid bash -c "CUDA_VISIBLE_DEVICES=$GPU_IDX python train_dpo.py --variant '$v' --out 'checkpoints/$v' > 'logs/train_${v}.log' 2>&1" < /dev/null &
-    PIDS+=("$!:$v:$GPU_IDX")
-    GPU_IDX=$((GPU_IDX + 1))
 done
 
-# Wait for all + track failures
-echo "=== waiting for $(echo $VARIANTS | wc -w) parallel trains ==="
-for entry in "${PIDS[@]}"; do
-    pid=${entry%%:*}
-    rest=${entry#*:}
-    v=${rest%%:*}
-    wait "$pid"
-    rc=$?
-    has_ckpt="no"
-    [ -d "checkpoints/$v" ] && [ -n "$(ls -A checkpoints/$v 2>/dev/null)" ] && has_ckpt="yes"
-    echo "[$v] wait rc=$rc ckpt=$has_ckpt" | tee -a logs/STATUS.md
-    if [ "$rc" = "0" ] && [ "$has_ckpt" = "yes" ]; then
-        echo "$(date -u +%FT%TZ) | $v | train done" >> logs/STATUS.md
-    else
-        echo "$(date -u +%FT%TZ) | $v | train FAILED rc=$rc ckpt=$has_ckpt" >> logs/STATUS.md
-    fi
+# GPU pool (free list)
+FREE_GPUS=()
+for ((i=0; i<NGPU; i++)); do FREE_GPUS+=("$i"); done
+
+# pid -> variant, pid -> gpu
+declare -A PID2V
+declare -A PID2G
+
+launch_next() {
+    local v="$1"
+    local gpu="${FREE_GPUS[0]}"
+    FREE_GPUS=("${FREE_GPUS[@]:1}")
+    echo "[$v] launching on GPU $gpu"
+    heartbeat "$v" "train start (gpu=$gpu)"
+    setsid bash -c "CUDA_VISIBLE_DEVICES=$gpu python train_dpo.py --variant '$v' --out 'checkpoints/$v' > 'logs/train_${v}.log' 2>&1" < /dev/null &
+    local pid=$!
+    PID2V[$pid]="$v"
+    PID2G[$pid]="$gpu"
+}
+
+# Initial fill
+while [ ${#PENDING[@]} -gt 0 ] && [ ${#FREE_GPUS[@]} -gt 0 ]; do
+    v="${PENDING[0]}"; PENDING=("${PENDING[@]:1}")
+    launch_next "$v"
 done
-push_results "[ORCH] parallel-train all done"
+
+# Drain queue: wait for any to finish, free its GPU, launch next
+while [ ${#PID2V[@]} -gt 0 ]; do
+    wait -n
+    rc=$?
+    # Find which pid finished (kill -0 on each known pid)
+    for pid in "${!PID2V[@]}"; do
+        if ! kill -0 "$pid" 2>/dev/null; then
+            v="${PID2V[$pid]}"
+            gpu="${PID2G[$pid]}"
+            has_ckpt="no"
+            [ -d "checkpoints/$v" ] && [ -n "$(ls -A checkpoints/$v 2>/dev/null)" ] && has_ckpt="yes"
+            echo "[$v] finished rc=$rc ckpt=$has_ckpt (gpu=$gpu freed)"
+            if [ "$has_ckpt" = "yes" ]; then
+                echo "$(date -u +%FT%TZ) | $v | train done" >> logs/STATUS.md
+            else
+                echo "$(date -u +%FT%TZ) | $v | train FAILED rc=$rc ckpt=$has_ckpt" >> logs/STATUS.md
+            fi
+            unset PID2V[$pid] PID2G[$pid]
+            FREE_GPUS+=("$gpu")
+            # Launch next pending on freed GPU
+            if [ ${#PENDING[@]} -gt 0 ]; then
+                next="${PENDING[0]}"; PENDING=("${PENDING[@]:1}")
+                launch_next "$next"
+            fi
+            break
+        fi
+    done
+done
+push_results "[ORCH] queued-train all done"
 
 # ────────────────────────────────────────────────────────────────────
 # PHASE 2 — eval all in parallel
@@ -105,35 +138,59 @@ push_results "[ORCH] parallel-train all done"
 echo "=== parallel eval ==="
 heartbeat "ORCH" "parallel-eval start"
 
-declare -a EVAL_PIDS
-GPU_IDX=0
+EVAL_QUEUE=()
 for v in $VARIANTS; do
     if [ -f "results/eval_${v}.json" ]; then continue; fi
     if [ ! -d "checkpoints/$v" ]; then echo "[$v] no checkpoint, skip eval"; continue; fi
-    echo "[$v] eval on GPU $GPU_IDX"
-    CUDA_VISIBLE_DEVICES=$GPU_IDX python eval.py --adapter "checkpoints/$v" --tag "$v" \
-        > "logs/eval_${v}.log" 2>&1 &
-    EVAL_PIDS+=("$!:$v")
-    GPU_IDX=$((GPU_IDX + 1))
+    EVAL_QUEUE+=("$v:checkpoints/$v")
 done
+[ ! -f "results/eval_base.json" ] && EVAL_QUEUE+=("base:")
 
-# Base policy eval on whichever GPU is free (use GPU 0)
-if [ ! -f "results/eval_base.json" ]; then
-    echo "[base] eval on GPU 0"
-    CUDA_VISIBLE_DEVICES=0 python eval.py --tag base \
-        > "logs/eval_base.log" 2>&1 &
-    EVAL_PIDS+=("$!:base")
-fi
+declare -a EVAL_PIDS
+EVAL_FREE=()
+for ((i=0; i<NGPU; i++)); do EVAL_FREE+=("$i"); done
 
-for entry in "${EVAL_PIDS[@]}"; do
-    pid=${entry%%:*}
-    v=${entry##*:}
-    if wait "$pid"; then
-        heartbeat "$v" "eval done"
+launch_eval() {
+    local entry="$1"
+    local v="${entry%%:*}"
+    local adapter="${entry#*:}"
+    local gpu="${EVAL_FREE[0]}"
+    EVAL_FREE=("${EVAL_FREE[@]:1}")
+    echo "[$v] eval on GPU $gpu"
+    if [ -n "$adapter" ]; then
+        CUDA_VISIBLE_DEVICES=$gpu python eval.py --adapter "$adapter" --tag "$v" > "logs/eval_${v}.log" 2>&1 &
     else
-        heartbeat "$v" "eval FAILED rc=$?"
+        CUDA_VISIBLE_DEVICES=$gpu python eval.py --tag "$v" > "logs/eval_${v}.log" 2>&1 &
     fi
+    EVAL_PIDS+=("$!:$v:$gpu")
+}
+
+while [ ${#EVAL_QUEUE[@]} -gt 0 ] && [ ${#EVAL_FREE[@]} -gt 0 ]; do
+    e="${EVAL_QUEUE[0]}"; EVAL_QUEUE=("${EVAL_QUEUE[@]:1}")
+    launch_eval "$e"
 done
+
+while [ ${#EVAL_PIDS[@]} -gt 0 ]; do
+    wait -n 2>/dev/null
+    NEW_PIDS=()
+    for entry in "${EVAL_PIDS[@]}"; do
+        pid=${entry%%:*}; rest=${entry#*:}; v=${rest%%:*}; gpu=${rest##*:}
+        if kill -0 "$pid" 2>/dev/null; then
+            NEW_PIDS+=("$entry")
+        else
+            echo "[$v] eval done (gpu=$gpu freed)"
+            heartbeat "$v" "eval done"
+            EVAL_FREE+=("$gpu")
+            if [ ${#EVAL_QUEUE[@]} -gt 0 ]; then
+                e="${EVAL_QUEUE[0]}"; EVAL_QUEUE=("${EVAL_QUEUE[@]:1}")
+                launch_eval "$e"
+                NEW_PIDS+=("${EVAL_PIDS[-1]}")
+            fi
+        fi
+    done
+    EVAL_PIDS=("${NEW_PIDS[@]}")
+done
+
 push_results "[ORCH] all evals done"
 
 # ────────────────────────────────────────────────────────────────────
