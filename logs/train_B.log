@@ -1,39 +1,0 @@
-=== Training variant B ===
-Dataset: 61135 → 39974 after filtering
-Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:00<00:00,  6.82it/s]Loading checkpoint shards:  50%|█████     | 2/4 [00:00<00:00,  7.14it/s]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:00<00:00,  7.06it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:00<00:00,  7.25it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:00<00:00,  7.16it/s]
-/usr/local/lib/python3.11/dist-packages/trl/trainer/dpo_trainer.py:708: UserWarning: When using DPODataCollatorWithPadding, you should set `remove_unused_columns=False` in your TrainingArguments we have set it for you, but you should do it yourself in the future.
-  warnings.warn(
-Tokenizing train dataset:   0%|          | 0/39974 [00:00<?, ? examples/s]Tokenizing train dataset:   0%|          | 0/39974 [00:08<?, ? examples/s]Tokenizing train dataset:   0%|          | 0/39974 [00:08<?, ? examples/s]
-Traceback (most recent call last):
-  File "/workspace/rlhf-coupling/train_dpo.py", line 137, in <module>
-    main(args.variant, out, args.max_steps)
-  File "/workspace/rlhf-coupling/train_dpo.py", line 112, in main
-    trainer = DPOTrainer(
-              ^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/dist-packages/huggingface_hub/utils/_deprecation.py", line 101, in inner_f
-    return f(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/dist-packages/trl/trainer/dpo_trainer.py", line 804, in __init__
-    train_dataset = train_dataset.map(
-                    ^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/dist-packages/datasets/arrow_dataset.py", line 560, in wrapper
-    out: Union["Dataset", "DatasetDict"] = func(self, *args, **kwargs)
-                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/dist-packages/datasets/arrow_dataset.py", line 3035, in map
-    for rank, done, content in Dataset._map_single(**dataset_kwargs):
-  File "/usr/local/lib/python3.11/dist-packages/datasets/arrow_dataset.py", line 3450, in _map_single
-    buf_writer, writer, tmp_file = init_buffer_and_writer()
-                                   ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/dist-packages/datasets/arrow_dataset.py", line 3372, in init_buffer_and_writer
-    tmp_file = tempfile.NamedTemporaryFile("wb", dir=cache_dir, delete=False)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.11/tempfile.py", line 719, in NamedTemporaryFile
-    file = _io.open(dir, mode, buffering=buffering,
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.11/tempfile.py", line 716, in opener
-    fd, name = _mkstemp_inner(dir, prefix, suffix, flags, output_type)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.11/tempfile.py", line 396, in _mkstemp_inner
-    fd = _os.open(file, flags, 0o600)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OSError: [Errno 28] No space left on device: '/root/.cache/huggingface/datasets/HuggingFaceH4___ultrafeedback_binarized/default/0.0.0/3949bf5f8c17c394422ccfab0c31ea9c20bdeb85/tmpibxhxpov'
