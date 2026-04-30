@@ -1,13 +1,3 @@
 Detected 4 GPUs
 === parallel train: A B C D ===
 Already up to date.
-[main af7c526] [ORCH] parallel-train start (4 GPUs)
- 2 files changed, 3 insertions(+), 1 deletion(-)
-To https://github.com/rena-jzhang/rlhf-coupling.git
-   3aec133..af7c526  main -> main
-[A] launching on GPU 0
-[B] launching on GPU 1
-[C] launching on GPU 2
-[D] launching on GPU 3
-=== waiting for 4 parallel trains ===
-Already up to date.
