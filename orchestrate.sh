@@ -26,6 +26,13 @@ cd "$ROOT"
 
 mkdir -p results checkpoints logs
 
+# RunPod injects pod env on PID 1 but ssh login shells drop them. Pull them in.
+if [ -z "${RUNPOD_POD_ID:-}" ] && [ -r /proc/1/environ ]; then
+    while IFS= read -r -d '' kv; do
+        case "$kv" in RUNPOD_*) export "$kv" ;; esac
+    done < /proc/1/environ
+fi
+
 if [ "$MODE" = "check" ]; then
     echo "=== orchestrate.sh self-check ==="
     echo "ROOT: $ROOT"
