@@ -1,2 +1,3 @@
-=== orchestrator start: variants=[A B C D] ===
+Detected 4 GPUs
+=== parallel train: A B C D ===
 Already up to date.
