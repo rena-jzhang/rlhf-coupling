@@ -15,3 +15,11 @@
 2026-04-30T10:57:03Z | base | eval done
 2026-04-30T10:57:08Z | ORCH | all done
 2026-04-30T16:44:56Z | ORCH | queued-train start
+2026-04-30T16:44:58Z | A | train start (gpu=0)
+2026-04-30T16:44:58Z | B | train start (gpu=1)
+2026-04-30T18:50:15Z | B | train done
+2026-04-30T18:50:15Z | C | train start (gpu=1)
+2026-04-30T19:59:20Z | A | train done
+2026-04-30T19:59:20Z | D | train start (gpu=0)
+2026-04-30T21:56:41Z | C | train done
+2026-04-30T22:04:02Z | D | train done

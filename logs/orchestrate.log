@@ -1,3 +1,16 @@
 Detected 2 GPUs
 === queued train: A B C D on 2 GPUs ===
 Already up to date.
+ 2 files changed, 4 insertions(+), 64 deletions(-)
+ rewrite logs/orchestrate.log (99%)
+To https://github.com/rena-jzhang/rlhf-coupling.git
+   796035d..23cf235  main -> main
+[A] launching on GPU 0
+[B] launching on GPU 1
+[B] finished rc=0 ckpt=yes (gpu=1 freed)
+[C] launching on GPU 1
+[A] finished rc=0 ckpt=yes (gpu=0 freed)
+[D] launching on GPU 0
+[C] finished rc=0 ckpt=yes (gpu=1 freed)
+[D] finished rc=0 ckpt=yes (gpu=0 freed)
+Already up to date.
