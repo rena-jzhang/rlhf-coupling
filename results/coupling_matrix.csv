@@ -1,0 +1,2 @@
+variant,label,verbosity_mean,sycophancy_flip,n_verb,n_syco
+base,base (no DPO),383.625,0.11,200,100

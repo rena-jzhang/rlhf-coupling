@@ -1,0 +1,3 @@
+| Variant | Label | Verbosity (tokens) | Sycophancy (flip rate) | n_verb | n_syco |
+|---|---|---|---|---|---|
+| base | base (no DPO) | 383.6 | 0.110 | 200 | 100 |
