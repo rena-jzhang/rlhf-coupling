@@ -141,11 +141,11 @@ def main(variant: str, out_dir: Path, max_steps: int) -> None:
         num_train_epochs=1,
         max_steps=max_steps,
         logging_steps=20,
-        save_steps=500,
+        save_steps=250,
         bf16=True,
         beta=0.1,
-        max_length=1024,
-        max_prompt_length=512,
+        max_length=768,
+        max_prompt_length=384,
         gradient_checkpointing=True,
         report_to="none",
     )
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--variant", required=True, choices=["A", "B", "C", "D"])
     ap.add_argument("--out", default=None, help="default: ./checkpoints/<variant>/")
-    ap.add_argument("--max-steps", type=int, default=-1, help="-1 = full epoch")
+    ap.add_argument("--max-steps", type=int, default=500, help="500 = enough for coupling signal; -1 = full epoch")
     args = ap.parse_args()
     out = Path(args.out or f"checkpoints/{args.variant}")
     main(args.variant, out, args.max_steps)

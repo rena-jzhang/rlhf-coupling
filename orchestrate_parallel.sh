@@ -75,8 +75,7 @@ for v in $VARIANTS; do
     fi
     echo "[$v] launching on GPU $GPU_IDX"
     heartbeat "$v" "train start (gpu=$GPU_IDX)"
-    CUDA_VISIBLE_DEVICES=$GPU_IDX python train_dpo.py --variant "$v" --out "checkpoints/$v" \
-        > "logs/train_${v}.log" 2>&1 &
+    setsid bash -c "CUDA_VISIBLE_DEVICES=$GPU_IDX python train_dpo.py --variant '$v' --out 'checkpoints/$v' > 'logs/train_${v}.log' 2>&1" < /dev/null &
     PIDS+=("$!:$v:$GPU_IDX")
     GPU_IDX=$((GPU_IDX + 1))
 done
@@ -87,10 +86,15 @@ for entry in "${PIDS[@]}"; do
     pid=${entry%%:*}
     rest=${entry#*:}
     v=${rest%%:*}
-    if wait "$pid"; then
-        heartbeat "$v" "train done"
+    wait "$pid"
+    rc=$?
+    has_ckpt="no"
+    [ -d "checkpoints/$v" ] && [ -n "$(ls -A checkpoints/$v 2>/dev/null)" ] && has_ckpt="yes"
+    echo "[$v] wait rc=$rc ckpt=$has_ckpt" | tee -a logs/STATUS.md
+    if [ "$rc" = "0" ] && [ "$has_ckpt" = "yes" ]; then
+        echo "$(date -u +%FT%TZ) | $v | train done" >> logs/STATUS.md
     else
-        heartbeat "$v" "train FAILED rc=$?"
+        echo "$(date -u +%FT%TZ) | $v | train FAILED rc=$rc ckpt=$has_ckpt" >> logs/STATUS.md
     fi
 done
 push_results "[ORCH] parallel-train all done"
