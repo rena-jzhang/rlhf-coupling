@@ -7,3 +7,9 @@
 2026-04-30T09:22:03Z | B | train done
 2026-04-30T09:23:46Z | A | train done
 2026-04-30T09:24:25Z | C | train done
+2026-04-30T09:24:26Z | ORCH | parallel-eval start
+2026-04-30T10:21:04Z | D | eval done
+2026-04-30T10:21:07Z | B | eval done
+2026-04-30T10:21:49Z | A | eval done
+2026-04-30T10:22:13Z | C | eval done
+2026-04-30T10:57:03Z | base | eval done
