@@ -28,13 +28,47 @@ import torch
 MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"  # non-gated; swap to Llama-3-8B once HF approval lands
 DATASET_ID = "HuggingFaceH4/ultrafeedback_binarized"
 
-# Sycophantic-agreement heuristic: chosen response leads with affirmation phrasing
-# right after a user opinion claim. Cheap proxy; not perfect.
+# Sycophantic-agreement heuristic — broadened to catch ~10-15% of pairs
+# instead of <0.1%. Two parts:
+#   AGREE_LEAD: chosen response opens with affirmation/praise patterns
+#   OPINION_PROBE: user message expresses a stated belief OR asks confirmatory question
 AGREE_LEAD = re.compile(
-    r"^\s*(yes|absolutely|exactly|you('re| are) right|that's correct|i agree|great point|i think you're right)",
+    r"^\s*("
+    r"yes\b|absolutely\b|exactly\b|definitely\b|certainly\b|of course\b|indeed\b|"
+    r"sure\b|right\b|correct\b|agreed\b|true\b|"
+    r"you('re| are)\s+(right|correct|absolutely)|"
+    r"that's\s+(correct|right|true|a (great|good)|exactly)|"
+    r"i\s+agree\b|i\s+(do\s+)?think\s+you('re| are)\s+right|"
+    r"great\s+(question|point|observation|insight|idea)|"
+    r"good\s+(question|point|observation)|"
+    r"what\s+(a|an)\s+(great|good|wonderful|thoughtful|excellent)\s+(question|point)|"
+    r"that's\s+a\s+(great|good|wonderful|thoughtful|excellent)\s+(question|point)|"
+    r"thank\s+you\s+for|"
+    r"i\s+see\s+(what|where)\s+you('re| are)|"
+    r"i\s+understand\s+(what|where|your)|"
+    r"i\s+appreciate"
+    r")",
     re.I,
 )
-OPINION_PROBE = re.compile(r"\bI (think|believe|feel|guess|assume)\b", re.I)
+# Match prompts that express a stated belief, or ask the model to confirm/validate.
+OPINION_PROBE = re.compile(
+    r"\b("
+    r"i\s+(think|believe|feel|guess|assume|suspect|reckon|am\s+sure|am\s+pretty\s+sure)|"
+    r"in\s+my\s+(opinion|view|experience|understanding)|"
+    r"personally,?\s+i|"
+    r"(am|are)\s+i\s+right|"
+    r"isn't\s+it\s+true|"
+    r"don't\s+you\s+(think|agree)|"
+    r"do\s+you\s+(think|believe|agree)|"
+    r"would\s+you\s+agree|"
+    r"is\s+it\s+(true|correct|right)|"
+    r"can\s+you\s+confirm|"
+    r"i've\s+heard\s+that|"
+    r"it\s+seems\s+(to\s+me|like)|"
+    r"my\s+(view|understanding|impression)\s+is"
+    r")\b",
+    re.I,
+)
 
 
 def is_length_skewed(ex: dict, ratio: float = 1.5) -> bool:
@@ -46,10 +80,17 @@ def is_length_skewed(ex: dict, ratio: float = 1.5) -> bool:
 
 def is_sycophantic(ex: dict) -> bool:
     user_msg = next((m["content"] for m in ex["chosen"] if m["role"] == "user"), "")
-    if not OPINION_PROBE.search(user_msg):
-        return False
     chosen_resp = ex["chosen"][-1]["content"]
-    return bool(AGREE_LEAD.match(chosen_resp))
+    # Trigger if response opens sycophantically AND (user signaled a belief OR
+    # the chosen lead is praise-of-question style which is sycophantic regardless).
+    if not AGREE_LEAD.match(chosen_resp):
+        return False
+    is_praise_lead = re.match(
+        r"^\s*(great|good|what\s+(a|an)\s+(great|good|wonderful|thoughtful|excellent)|"
+        r"that's\s+a\s+(great|good|wonderful|thoughtful|excellent)|thank\s+you|i\s+appreciate)",
+        chosen_resp, re.I,
+    )
+    return is_praise_lead is not None or bool(OPINION_PROBE.search(user_msg))
 
 
 def filter_dataset(ds, variant: str):
