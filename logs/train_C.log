@@ -1,0 +1,41 @@
+=== Training variant C ===
+Filter:   0%|          | 0/61135 [00:00<?, ? examples/s]Filter:   0%|          | 0/61135 [00:00<?, ? examples/s]Filter:   0%|          | 0/61135 [00:00<?, ? examples/s]
+Traceback (most recent call last):
+  File "/workspace/rlhf-coupling/train_dpo.py", line 178, in <module>
+    main(args.variant, out, args.max_steps)
+  File "/workspace/rlhf-coupling/train_dpo.py", line 117, in main
+    ds = filter_dataset(ds_full, variant)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/rlhf-coupling/train_dpo.py", line 104, in filter_dataset
+    return ds.filter(keep_syco)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/datasets/arrow_dataset.py", line 560, in wrapper
+    out: Union["Dataset", "DatasetDict"] = func(self, *args, **kwargs)
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/datasets/fingerprint.py", line 442, in wrapper
+    out = func(dataset, *args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/datasets/arrow_dataset.py", line 3650, in filter
+    indices = self.map(
+              ^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/datasets/arrow_dataset.py", line 560, in wrapper
+    out: Union["Dataset", "DatasetDict"] = func(self, *args, **kwargs)
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/datasets/arrow_dataset.py", line 3035, in map
+    for rank, done, content in Dataset._map_single(**dataset_kwargs):
+  File "/usr/local/lib/python3.11/dist-packages/datasets/arrow_dataset.py", line 3450, in _map_single
+    buf_writer, writer, tmp_file = init_buffer_and_writer()
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/datasets/arrow_dataset.py", line 3372, in init_buffer_and_writer
+    tmp_file = tempfile.NamedTemporaryFile("wb", dir=cache_dir, delete=False)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/tempfile.py", line 719, in NamedTemporaryFile
+    file = _io.open(dir, mode, buffering=buffering,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/tempfile.py", line 716, in opener
+    fd, name = _mkstemp_inner(dir, prefix, suffix, flags, output_type)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/tempfile.py", line 396, in _mkstemp_inner
+    fd = _os.open(file, flags, 0o600)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 28] No space left on device: '/root/.cache/huggingface/datasets/HuggingFaceH4___ultrafeedback_binarized/default/0.0.0/3949bf5f8c17c394422ccfab0c31ea9c20bdeb85/tmpuyza_thc'
