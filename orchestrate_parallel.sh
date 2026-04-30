@@ -157,10 +157,12 @@ launch_eval() {
     local gpu="${EVAL_FREE[0]}"
     EVAL_FREE=("${EVAL_FREE[@]:1}")
     echo "[$v] eval on GPU $gpu"
+    local nverb="${EVAL_N_VERB:-300}"
+    local nsyco="${EVAL_N_SYCO:-500}"
     if [ -n "$adapter" ]; then
-        CUDA_VISIBLE_DEVICES=$gpu python eval.py --adapter "$adapter" --tag "$v" > "logs/eval_${v}.log" 2>&1 &
+        CUDA_VISIBLE_DEVICES=$gpu python eval.py --adapter "$adapter" --tag "$v" --n-verb "$nverb" --n-syco "$nsyco" > "logs/eval_${v}.log" 2>&1 &
     else
-        CUDA_VISIBLE_DEVICES=$gpu python eval.py --tag "$v" > "logs/eval_${v}.log" 2>&1 &
+        CUDA_VISIBLE_DEVICES=$gpu python eval.py --tag "$v" --n-verb "$nverb" --n-syco "$nsyco" > "logs/eval_${v}.log" 2>&1 &
     fi
     EVAL_PIDS+=("$!:$v:$gpu")
 }

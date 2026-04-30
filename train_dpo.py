@@ -172,7 +172,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--variant", required=True, choices=["A", "B", "C", "D"])
     ap.add_argument("--out", default=None, help="default: ./checkpoints/<variant>/")
-    ap.add_argument("--max-steps", type=int, default=500, help="500 = enough for coupling signal; -1 = full epoch")
+    ap.add_argument("--max-steps", type=int, default=-1, help="-1 = full epoch (publishable); 500 = pilot")
     args = ap.parse_args()
     out = Path(args.out or f"checkpoints/{args.variant}")
     main(args.variant, out, args.max_steps)
