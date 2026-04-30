@@ -7,3 +7,4 @@ results/*.json
 data/
 .env
 wandb/
+.monitor_state.json
