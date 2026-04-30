@@ -1,2 +1,6 @@
 variant,label,verbosity_mean,sycophancy_flip,n_verb,n_syco
-base,base (no DPO),383.625,0.11,200,100
+A,baseline,382.68,0.1,200,100
+B,length-decoupled,379.025,0.12,200,100
+C,sycophancy-decoupled,383.69,0.09,200,100
+D,both-decoupled,377.65,0.13,200,100
+base,base (no DPO),382.76,0.11,200,100
