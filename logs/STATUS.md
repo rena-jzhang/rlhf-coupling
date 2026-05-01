@@ -23,3 +23,9 @@
 2026-04-30T19:59:20Z | D | train start (gpu=0)
 2026-04-30T21:56:41Z | C | train done
 2026-04-30T22:04:02Z | D | train done
+2026-04-30T22:04:06Z | ORCH | parallel-eval start
+2026-04-30T22:54:00Z | A | eval done
+2026-04-30T22:54:44Z | B | eval done
+2026-04-30T23:41:56Z | D | eval done
+2026-04-30T23:46:33Z | C | eval done
+2026-05-01T00:13:17Z | base | eval done

@@ -14,3 +14,19 @@ To https://github.com/rena-jzhang/rlhf-coupling.git
 [C] finished rc=0 ckpt=yes (gpu=1 freed)
 [D] finished rc=0 ckpt=yes (gpu=0 freed)
 Already up to date.
+ rewrite logs/train_C.log (88%)
+ rewrite logs/train_D.log (91%)
+To https://github.com/rena-jzhang/rlhf-coupling.git
+   23cf235..219daea  main -> main
+=== parallel eval ===
+[A] eval on GPU 0
+[B] eval on GPU 1
+[A] eval done (gpu=0 freed)
+[C] eval on GPU 0
+[B] eval done (gpu=1 freed)
+[D] eval on GPU 1
+[D] eval done (gpu=1 freed)
+[base] eval on GPU 1
+[C] eval done (gpu=0 freed)
+[base] eval done (gpu=1 freed)
+Already up to date.
