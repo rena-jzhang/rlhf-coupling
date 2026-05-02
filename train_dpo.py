@@ -93,6 +93,21 @@ def is_sycophantic(ex: dict) -> bool:
     return is_praise_lead is not None or bool(OPINION_PROBE.search(user_msg))
 
 
+def _load_elephant_drop_set(scores_path: str = "results/elephant_scores.json") -> set:
+    """Load ELEPHANT-flagged indices to drop. C-prime / D-prime use this."""
+    import json
+    from pathlib import Path
+    p = Path(scores_path)
+    if not p.exists():
+        raise FileNotFoundError(
+            f"{p} missing. Run filter_elephant.py first to score UltraFeedback with ELEPHANT prompts."
+        )
+    scores = json.load(open(p))
+    drops = {r["idx"] for r in scores if r.get("drop")}
+    print(f"ELEPHANT scores loaded from {p}: {len(scores)} scored, {len(drops)} flagged for drop ({100*len(drops)/len(scores):.1f}%)")
+    return drops
+
+
 def filter_dataset(ds, variant: str):
     if variant == "A":
         return ds
@@ -104,11 +119,19 @@ def filter_dataset(ds, variant: str):
         return ds.filter(keep_syco)
     if variant == "D":
         return ds.filter(lambda ex: keep_len(ex) and keep_syco(ex))
+    if variant == "Cp":
+        # C-prime: ELEPHANT (gpt-4o-mini judge) instead of regex.
+        drops = _load_elephant_drop_set()
+        return ds.filter(lambda ex, idx: idx not in drops, with_indices=True)
+    if variant == "Dp":
+        # D-prime: length filter AND ELEPHANT.
+        drops = _load_elephant_drop_set()
+        return ds.filter(lambda ex, idx: keep_len(ex) and idx not in drops, with_indices=True)
     raise ValueError(f"unknown variant {variant}")
 
 
-def main(variant: str, out_dir: Path, max_steps: int) -> None:
-    print(f"=== Training variant {variant} ===")
+def main(variant: str, out_dir: Path, max_steps: int, seed: int = 42) -> None:
+    print(f"=== Training variant {variant} (seed={seed}) ===")
     tok = AutoTokenizer.from_pretrained(MODEL_ID)
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
@@ -148,6 +171,8 @@ def main(variant: str, out_dir: Path, max_steps: int) -> None:
         max_prompt_length=384,
         gradient_checkpointing=True,
         report_to="none",
+        seed=seed,
+        data_seed=seed,
     )
 
     trainer = DPOTrainer(
@@ -170,9 +195,12 @@ def main(variant: str, out_dir: Path, max_steps: int) -> None:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--variant", required=True, choices=["A", "B", "C", "D"])
+    ap.add_argument("--variant", required=True, choices=["A", "B", "C", "D", "Cp", "Dp"])
     ap.add_argument("--out", default=None, help="default: ./checkpoints/<variant>/")
     ap.add_argument("--max-steps", type=int, default=-1, help="-1 = full epoch (publishable); 500 = pilot")
+    ap.add_argument("--seed", type=int, default=42, help="random seed for DPO/dataloader")
     args = ap.parse_args()
+    import torch
+    torch.manual_seed(args.seed)
     out = Path(args.out or f"checkpoints/{args.variant}")
-    main(args.variant, out, args.max_steps)
+    main(args.variant, out, args.max_steps, args.seed)
