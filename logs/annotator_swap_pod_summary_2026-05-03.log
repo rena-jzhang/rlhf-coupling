@@ -1,0 +1,75 @@
+=== Annotator-swap pod run summary, captured 2026-05-03 16:51 ===
+Pod: smoggy_maroon_elk (z4q8aer8a632f2), 1× A100 80GB PCIe
+Wall: ~10 minutes (Skywork ~3 min + ArmoRM ~1 min + load times)
+Cost: <$1
+
+=== Skywork-Reward-V2-Llama-3.1-8B (n=500) ===
+valid pairs:        500
+chosen > rejected:  365 (73.0%)  [Skywork-V2 agreement with UF labels]
+mean (chosen-rej):  +6.883
+
+=== ArmoRM-Llama3-8B-v0.1 (n=500) ===
+valid pairs:           500
+gated chosen>rejected: 373 (74.6%)
+
+per-attribute agreement (chosen-attr > rejected-attr):
+  ultrafeedback-overall_score               : 393/500 (78.6%)
+  ultrafeedback-instruction_following       : 379/500 (75.8%)
+  ultrafeedback-truthfulness                : 384/500 (76.8%)
+  ultrafeedback-honesty                     : 387/500 (77.4%)
+  ultrafeedback-helpfulness                 : 376/500 (75.2%)
+
+=== summarize_annotator_swap.py output ===
+elephant: 500 pairs
+skywork:  500 pairs
+armorm:   500 pairs
+common indices across all loaded annotators: 500
+
+=== per-annotator: how often is chosen preferred over rejected? ===
+
+gpt-4o-mini ELEPHANT framing (chosen-side more 'does not challenge'):
+  both flagged: 447  chosen-only: 30  rejected-only: 15  neither: 8
+  McNemar z = +2.24 on (chosen-only vs rejected-only)
+  → wrong-direction signal at framing axis: chosen MORE sycophantic
+
+Skywork-Reward-V2-8B (chosen scalar > rejected scalar):
+  agrees with UF label: 365/500 = 73.0% [68.9, 76.7]
+  → 50% = no signal; >>50% = bias propagated; <<50% = Skywork disagrees with UF
+
+ArmoRM-8B gated scalar (chosen > rejected):
+  agrees with UF label: 373/500 = 74.6% [70.6, 78.2]
+
+=== pairwise cross-annotator agreement (chosen>rejected ordering) ===
+  gpt-4o-mini-framing       vs Skywork-V2     : 31/45 = 68.9% [54.3, 80.5]
+  gpt-4o-mini-framing       vs ArmoRM         : 36/45 = 80.0% [66.2, 89.1]
+  Skywork-V2                vs ArmoRM         : 408/500 = 81.6% [78.0, 84.8]
+
+=== ArmoRM per-attribute agreement (chosen attr-score > rejected attr-score) ===
+  helpsteer-helpfulness                     : 373/500 (74.6%, [70.6, 78.2])
+  helpsteer-correctness                     : 374/500 (74.8%, [70.8, 78.4])
+  helpsteer-coherence                       : 364/500 (72.8%, [68.7, 76.5])
+  helpsteer-complexity                      : 311/500 (62.2%, [57.9, 66.3])
+  helpsteer-verbosity                       : 288/500 (57.6%, [53.2, 61.9])
+  ultrafeedback-overall_score               : 393/500 (78.6%, [74.8, 82.0])
+  ultrafeedback-instruction_following       : 379/500 (75.8%, [71.9, 79.3])
+  ultrafeedback-truthfulness                : 384/500 (76.8%, [72.9, 80.3])
+  ultrafeedback-honesty                     : 387/500 (77.4%, [73.5, 80.8])
+  ultrafeedback-helpfulness                 : 376/500 (75.2%, [71.2, 78.8])
+  beavertails-is_safe                       : 226/500 (45.2%, [40.9, 49.6])
+  prometheus-score                          : 371/500 (74.2%, [70.2, 77.8])
+  argilla-overall_quality                   : 380/500 (76.0%, [72.1, 79.5])
+  argilla-judge_lm                          : 385/500 (77.0%, [73.1, 80.5])
+  code-complexity                           : 360/500 (72.0%, [67.9, 75.8])
+  code-style                                : 356/500 (71.2%, [67.1, 75.0])
+  code-explanation                          : 359/500 (71.8%, [67.7, 75.6])
+  code-instruction-following                : 377/500 (75.4%, [71.4, 79.0])
+  code-readability                          : 365/500 (73.0%, [68.9, 76.7])
+=== annotator-swap orchestrator finished ===
+
+=== POD-SIDE PATCHES APPLIED (now also in source) ===
+1. score_skywork_v2.py + score_armorm.py: attn_implementation flash_attention_2 → sdpa
+   (default pod has no flash-attn installed; sdpa is the safe alternative)
+2. ArmoRM cached modeling_custom.py: stub LLAMA_INPUTS_DOCSTRING = ""
+   (ArmoRM v0.1 was published before transformers removed this constant)
+   On a fresh pod, this needs to be re-applied to the HF cache after first download.
+   Path: $HF_HOME/modules/transformers_modules/RLHFlow/ArmoRM_hyphen_Llama3_hyphen_8B_hyphen_v0_dot_1/<rev>/modeling_custom.py

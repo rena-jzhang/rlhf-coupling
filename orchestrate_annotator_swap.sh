@@ -49,6 +49,20 @@ push_results() {
 echo "=== installing deps ==="
 pip install -q transformers accelerate datasets torch tqdm 2>&1 | tail -3
 
+# ArmoRM v0.1 was published before transformers removed LLAMA_INPUTS_DOCSTRING.
+# Patch the cached modeling_custom.py once it's downloaded (idempotent: leaves OK
+# if already patched).
+patch_armorm_cache() {
+    local f
+    for f in "$HF_HOME"/modules/transformers_modules/RLHFlow/ArmoRM_hyphen_Llama3_hyphen_8B_hyphen_v0_dot_1/*/modeling_custom.py; do
+        [ -f "$f" ] || continue
+        if grep -q "from transformers.models.llama.modeling_llama import LLAMA_INPUTS_DOCSTRING" "$f"; then
+            sed -i 's|from transformers.models.llama.modeling_llama import LLAMA_INPUTS_DOCSTRING|LLAMA_INPUTS_DOCSTRING = ""|' "$f"
+            echo "[patch] ArmoRM modeling_custom.py — stubbed LLAMA_INPUTS_DOCSTRING in $f"
+        fi
+    done
+}
+
 # ──────────────────────────────────────────────────────────
 # PHASE 1: Skywork-Reward-V2-Llama-3.1-8B
 # ──────────────────────────────────────────────────────────
@@ -65,7 +79,17 @@ fi
 # ──────────────────────────────────────────────────────────
 if [ ! -f "results/armorm_scores.json" ]; then
     echo "=== ArmoRM scoring ==="
+    # Ensure cached custom modeling code is patched (idempotent; only matters
+    # after the first download).
+    patch_armorm_cache
     python score_armorm.py --n "$N" 2>&1 | tee logs/armorm.log
+    # If first run downloaded a fresh modeling_custom.py, the import error
+    # surfaces only inside the python call — rerun once after the patch lands.
+    if grep -q "LLAMA_INPUTS_DOCSTRING" logs/armorm.log; then
+        echo "[retry] ArmoRM hit LLAMA_INPUTS_DOCSTRING — patching cache and retrying"
+        patch_armorm_cache
+        python score_armorm.py --n "$N" 2>&1 | tee -a logs/armorm.log
+    fi
     push_results "[annotator-swap] ArmoRM scores (n=$N)"
 else
     echo "armorm_scores.json exists; skipping"

@@ -51,9 +51,10 @@ def score_pair(rm, tok, prompt: str, response: str, device):
         {"role": "user", "content": prompt},
         {"role": "assistant", "content": response},
     ]
-    ids = tok.apply_chat_template(convo, return_tensors="pt").to(device)
+    text = tok.apply_chat_template(convo, tokenize=False)
+    inputs = tok(text, return_tensors="pt", truncation=True, max_length=4096).to(device)
     with torch.no_grad():
-        out = rm(ids)
+        out = rm(**inputs)
     # ArmoRM output: out.score (scalar via gating), out.rewards (19 attribute heads)
     return float(out.score.item()), [float(x) for x in out.rewards[0].tolist()]
 
@@ -73,7 +74,7 @@ def main():
         torch_dtype=torch.bfloat16,
         device_map="auto",
         trust_remote_code=True,
-        attn_implementation="flash_attention_2" if torch.cuda.is_available() else None,
+        attn_implementation="sdpa",  # avoids needing flash-attn install on pod
     )
     rm.eval()
     device = next(rm.parameters()).device

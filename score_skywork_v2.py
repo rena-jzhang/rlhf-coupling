@@ -35,9 +35,10 @@ def score_pair(rm, tok, prompt: str, response: str, device) -> float:
         {"role": "user", "content": prompt},
         {"role": "assistant", "content": response},
     ]
-    ids = tok.apply_chat_template(convo, tokenize=True, return_tensors="pt").to(device)
+    text = tok.apply_chat_template(convo, tokenize=False)
+    inputs = tok(text, return_tensors="pt", truncation=True, max_length=4096).to(device)
     with torch.no_grad():
-        out = rm(ids)
+        out = rm(**inputs)
     return float(out.logits[0][0].item())
 
 
@@ -56,7 +57,7 @@ def main():
         torch_dtype=torch.bfloat16,
         device_map="auto",
         num_labels=1,
-        attn_implementation="flash_attention_2" if torch.cuda.is_available() else None,
+        attn_implementation="sdpa",  # avoids needing flash-attn install on pod
     )
     rm.eval()
     device = next(rm.parameters()).device
